@@ -16,31 +16,40 @@ vpDisplayX * display;
 // template tracker variables
 vpTemplateTrackerWarpHomography * warp;
 vpTemplateTrackerSSDInverseCompositional * tracker;
-bool initialized;
+bool initialized = false;
+
+// Used for testing with certain bag files and hardcoding detections
+#define BAG_FILE 1
+#if BAG_FILE==0 // mbztestfl1_2016-06-02-16-38-52.bag
+const int FRAME_NO = 5844;
+vpTemplateTrackerTriangle t1(vpImagePoint(346, 387), vpImagePoint(432, 369), vpImagePoint(454, 484));
+vpTemplateTrackerTriangle t2(vpImagePoint(454, 484), vpImagePoint(369, 499), vpImagePoint(346, 387));
+#elif BAG_FILE==1 // Ch1_exp1_descend_640.bag
+const int FRAME_NO = 527;
+vpTemplateTrackerTriangle t1(vpImagePoint(106, 260), vpImagePoint(144, 257), vpImagePoint(144, 307));
+vpTemplateTrackerTriangle t2(vpImagePoint(144, 307), vpImagePoint(108, 310), vpImagePoint(106, 260));
+#else
+#undef BAG_FILE
+#endif
 
 void imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
   ROS_INFO("Image Recevied, %d %d %d", msg->header.seq, msg->width, msg->height);
   I  = visp_bridge::toVispImage(*msg);
-  
-  if(msg->header.seq == 5844 && !initialized)
+
+  // hardcoded detection
+#ifdef BAG_FILE
+  if(msg->header.seq == FRAME_NO && !initialized)
   {
     ROS_INFO("Reached hardcoded frame sequence ID");
     vpTemplateTrackerZone zone;
-    vpTemplateTrackerTriangle t1(vpImagePoint(387, 346), 
-				 vpImagePoint(369, 432),
-				 vpImagePoint(484, 454)
-			      );
-    vpTemplateTrackerTriangle t2(vpImagePoint(484, 454), 
-				 vpImagePoint(499, 369),
-				 vpImagePoint(387, 346)
-			      );
     vpTemplateTrackerZone tz;
     tz.add(t1);
     tz.add(t2);
     tracker->initFromZone(I, tz);
     initialized = true;
   }
+#endif
   
   vpDisplay::display(I); 
   if(initialized)
