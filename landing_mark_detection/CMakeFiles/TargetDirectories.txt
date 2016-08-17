@@ -1,0 +1,1 @@
+/home/mohammed/opencv_ws/testing_cpp/landing_mark_detection/CMakeFiles/landing_mark_detection.dir

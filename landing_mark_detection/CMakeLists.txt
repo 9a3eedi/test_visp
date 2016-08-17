@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project( landing_mark_detection )
+find_package( OpenCV REQUIRED )
+add_executable( landing_mark_detection main.cpp )
+target_link_libraries( landing_mark_detection ${OpenCV_LIBS} )
