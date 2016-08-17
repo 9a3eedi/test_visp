@@ -74,10 +74,10 @@ bool DetectLandingMark::detect(Mat frame) {
 			//ensure that the contour passes all our tests
 			if (keepDims and keepSolidity and keepAspectRatio) {
 				//get ROI (inside the contour)
-				roi_square = frame(rect);
+				roi_square = gray(rect);
 				//detect circles in the image
 				vector<Vec3f> circles; 
-				HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.2, 75); //circles = (x,y,radius)
+				HoughCircles(roi_square, circles, CV_HOUGH_GRADIENT, 1.2, 75); //circles = (x,y,radius)
 				//if more than one circle is detected, select the one with largest radius
 				if(circles.size() >= 1){
 					//select circle with largest radius
@@ -91,8 +91,8 @@ bool DetectLandingMark::detect(Mat frame) {
 					//draw them
 					circle(frame, Point(int(circles[max_r_index][0]), int(circles[max_r_index][1])), circles[max_r_index][2], Scalar(0, 255, 0), 4);
 					//take the average of both shapes' centers and display it as the center of the landing mark
-					double average_x = ((int(circles[max_r_index][0]))+(rect.x+rect.width/2.0))/2.0;
-					double average_y = ((int(circles[max_r_index][1]))+(rect.y+rect.height/2.0))/2.0;
+					double average_x = ((int(circles[max_r_index][0])+rect.x)+(rect.x+rect.width/2.0))/2.0;
+					double average_y = ((int(circles[max_r_index][1])+rect.y)+(rect.y+rect.height/2.0))/2.0;
 					rectangle(frame, Point(average_x - 5, average_y - 5), Point(average_x + 5, average_y + 5), Scalar(0, 128, 255), -1);
 					//if the two centers are very close, then accept it
 					if(average_x-(int(circles[max_r_index][0]))<=20){

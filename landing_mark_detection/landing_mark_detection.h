@@ -14,7 +14,7 @@ class DetectLandingMark {
 			double x, y;				//top-left (x,y) coordinates of the bounding rectangle
 			double width, height, center_x, center_y;			//width, height of the rectangle, and the center of the landing mark
 		};
-		bool detect(Mat);
+		bool detect(Mat, int);
 		landing_mark get_landing_mark() {
 			return a;
 		}
@@ -29,7 +29,7 @@ class DetectLandingMark {
 	private:
 		landing_mark a;
 };
-bool DetectLandingMark::detect(Mat frame) {
+bool DetectLandingMark::detect(Mat frame, int show_result=0) {
     Mat edged;
     Mat edged2;
     Mat gray;
@@ -48,7 +48,7 @@ bool DetectLandingMark::detect(Mat frame) {
 	vector<Vec4i> hierarchy;
 	vector<Point> hull;
 	edged.copyTo(edged2);
-	findContours(edged2, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+	findContours(edged2, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 	
 	//loop over the contours
 	for( int i = 0; i< contours.size(); i++ ){
@@ -72,12 +72,12 @@ bool DetectLandingMark::detect(Mat frame) {
 			bool keepAspectRatio = (aspectRatio >= 0.8 and aspectRatio <= 1.2)?true:false;
 			
 			//ensure that the contour passes all our tests
-			if (keepDims and keepSolidity and keepAspectRatio) {
+			if (keepDims and keepSolidity and keepAspectRatio){
 				//get ROI (inside the contour)
-				roi_square = frame(rect);
+				roi_square = gray(rect);
 				//detect circles in the image
 				vector<Vec3f> circles; 
-				HoughCircles(gray, circles, CV_HOUGH_GRADIENT, 1.2, 75); //circles = (x,y,radius)
+				HoughCircles(roi_square, circles, CV_HOUGH_GRADIENT, 1.2, 75); //circles = (x,y,radius)
 				//if more than one circle is detected, select the one with largest radius
 				if(circles.size() >= 1){
 					//select circle with largest radius
@@ -85,20 +85,22 @@ bool DetectLandingMark::detect(Mat frame) {
 					for(int m=0; m<circles.size(); m++){
 						if(circles[m][2]>circles[max_r_index][2])
 							max_r_index = m;
-					}
-					//draw an outline around the target
-					drawContours(frame, contours, i, (0, 0, 255), 4);					
-					//draw them
-					circle(frame, Point(int(circles[max_r_index][0]), int(circles[max_r_index][1])), circles[max_r_index][2], Scalar(0, 255, 0), 4);
+					}				
 					//take the average of both shapes' centers and display it as the center of the landing mark
-					double average_x = ((int(circles[max_r_index][0]))+(rect.x+rect.width/2.0))/2.0;
-					double average_y = ((int(circles[max_r_index][1]))+(rect.y+rect.height/2.0))/2.0;
-					rectangle(frame, Point(average_x - 5, average_y - 5), Point(average_x + 5, average_y + 5), Scalar(0, 128, 255), -1);
+					double average_x = ((int(circles[max_r_index][0])+rect.x)+(rect.x+rect.width/2.0))/2.0;
+					double average_y = ((int(circles[max_r_index][1])+rect.y)+(rect.y+rect.height/2.0))/2.0;
 					//if the two centers are very close, then accept it
-					if(average_x-(int(circles[max_r_index][0]))<=20){
+					if(average_x-(int(circles[max_r_index][0])+rect.x)<=20){
 						status = "Target Detected";
 						status_flag = 1;
-						putText(frame, status, Point(20, 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 120, 0), 2);
+						//start drawing if requested
+						if(show_result){
+							drawContours(frame, contours, i, (0, 0, 255), 4);
+							circle(frame, Point(int(circles[max_r_index][0])+rect.x, int(circles[max_r_index][1])+rect.y), circles[max_r_index][2], Scalar(0, 255, 0), 4);
+							rectangle(frame, Point(average_x - 5, average_y - 5), Point(average_x + 5, average_y + 5), Scalar(0, 128, 255), -1);
+							putText(frame, status, Point(20, 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 120, 0), 2);
+						}
+						//assign values to the landing_mark struct
 						a.x = rect.x;
 						a.y = rect.y;
 						a.width = rect.width;
@@ -109,8 +111,10 @@ bool DetectLandingMark::detect(Mat frame) {
 				}
 			}
 		}
-	}     
-	imshow("Landing Mark Detection", frame);
-	waitKey(0);
+	}
+	if(show_result){    
+		imshow("Landing Mark Detection", frame);
+		waitKey(0);
+	}
 	return((status_flag==1)?true:false);
 }
