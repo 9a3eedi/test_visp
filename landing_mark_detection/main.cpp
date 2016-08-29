@@ -10,7 +10,7 @@ int main( int argc, char** argv )
     Mat img = imread(argv[1]);
     DetectLandingMark d;
     if(d.detect(img, atoi(argv[2]))){
-		DetectLandingMark::landing_mark lm = d.get_landing_mark();
+		landing_mark lm = d.get_landing_mark();
 		cout<<"X: "<<lm.x<<" Y: "<<lm.y<<"\nWidth: "<<lm.width<<" Height: "<<lm.height<<"\nCircle Center X: "<<lm.center_x<<" Circle Center Y: "<<lm.center_y<<endl;
 	}
 	else

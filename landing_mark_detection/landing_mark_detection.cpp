@@ -1,35 +1,9 @@
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include "opencv2/opencv.hpp"
-#include <iostream>
-#include <cstring>
-#include <stdio.h>
+#include "landing_mark_detection.h"
 
 using namespace cv;
 using namespace std;
 
-class DetectLandingMark {
-	public:
-		struct landing_mark{
-			double x, y;				//top-left (x,y) coordinates of the bounding rectangle
-			double width, height, center_x, center_y;			//width, height of the rectangle, and the center of the landing mark
-		};
-		bool detect(Mat);
-		landing_mark get_landing_mark() {
-			return a;
-		}
-		DetectLandingMark(void){
-			a.x = -1;
-			a.y = -1;
-			a.width = -1;
-			a.height = -1;
-			a.center_x = -1;
-			a.center_y = -1;
-		}
-	private:
-		landing_mark a;
-};
-bool DetectLandingMark::detect(Mat frame) {
+bool DetectLandingMark::detect(Mat frame, int show_result=0) {
     Mat edged;
     Mat edged2;
     Mat gray;
@@ -48,7 +22,7 @@ bool DetectLandingMark::detect(Mat frame) {
 	vector<Vec4i> hierarchy;
 	vector<Point> hull;
 	edged.copyTo(edged2);
-	findContours(edged2, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+	findContours(edged2, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 	
 	//loop over the contours
 	for( int i = 0; i< contours.size(); i++ ){
@@ -72,7 +46,7 @@ bool DetectLandingMark::detect(Mat frame) {
 			bool keepAspectRatio = (aspectRatio >= 0.8 and aspectRatio <= 1.2)?true:false;
 			
 			//ensure that the contour passes all our tests
-			if (keepDims and keepSolidity and keepAspectRatio) {
+			if (keepDims and keepSolidity and keepAspectRatio){
 				//get ROI (inside the contour)
 				roi_square = gray(rect);
 				//detect circles in the image
@@ -85,20 +59,22 @@ bool DetectLandingMark::detect(Mat frame) {
 					for(int m=0; m<circles.size(); m++){
 						if(circles[m][2]>circles[max_r_index][2])
 							max_r_index = m;
-					}
-					//draw an outline around the target
-					drawContours(frame, contours, i, (0, 0, 255), 4);					
-					//draw them
-					circle(frame, Point(int(circles[max_r_index][0]), int(circles[max_r_index][1])), circles[max_r_index][2], Scalar(0, 255, 0), 4);
+					}				
 					//take the average of both shapes' centers and display it as the center of the landing mark
 					double average_x = ((int(circles[max_r_index][0])+rect.x)+(rect.x+rect.width/2.0))/2.0;
 					double average_y = ((int(circles[max_r_index][1])+rect.y)+(rect.y+rect.height/2.0))/2.0;
-					rectangle(frame, Point(average_x - 5, average_y - 5), Point(average_x + 5, average_y + 5), Scalar(0, 128, 255), -1);
 					//if the two centers are very close, then accept it
-					if(average_x-(int(circles[max_r_index][0]))<=20){
+					if(average_x-(int(circles[max_r_index][0])+rect.x)<=20){
 						status = "Target Detected";
 						status_flag = 1;
-						putText(frame, status, Point(20, 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 120, 0), 2);
+						//start drawing if requested
+						if(show_result){
+							drawContours(frame, contours, i, (0, 0, 255), 4);
+							circle(frame, Point(int(circles[max_r_index][0])+rect.x, int(circles[max_r_index][1])+rect.y), circles[max_r_index][2], Scalar(0, 255, 0), 4);
+							rectangle(frame, Point(average_x - 5, average_y - 5), Point(average_x + 5, average_y + 5), Scalar(0, 128, 255), -1);
+							putText(frame, status, Point(20, 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(100, 120, 0), 2);
+						}
+						//assign values to the landing_mark struct
 						a.x = rect.x;
 						a.y = rect.y;
 						a.width = rect.width;
@@ -109,28 +85,10 @@ bool DetectLandingMark::detect(Mat frame) {
 				}
 			}
 		}
-	}     
-	imshow("Landing Mark Detection", frame);
-	waitKey(0);
-	return((status_flag==1)?true:false);
-}
-
-
-int main( int argc, char** argv )
-{
-    if( argc != 2)
-    {
-		cout <<" Usage: landing_mark_detection pathToImage" << endl;
-		return -1;
-    }
-    Mat img = imread(argv[1]);
-    DetectLandingMark d;
-    if(d.detect(img)){
-		DetectLandingMark::landing_mark lm = d.get_landing_mark();
-		cout<<"X: "<<lm.x<<" Y: "<<lm.y<<"\nWidth: "<<lm.width<<" Height: "<<lm.height<<"\nCircle Center X: "<<lm.center_x<<" Circle Center Y: "<<lm.center_y<<endl;
 	}
-	else
-		cout<<"Couldn't find the landing mark!!"<<endl;
-
-    return 0;
+	if(show_result){    
+		imshow("Landing Mark Detection", frame);
+		waitKey(0);
+	}
+	return((status_flag==1)?true:false);
 }
