@@ -10,6 +10,8 @@
 #include <visp/vpTemplateTrackerWarpHomography.h>
 #include <visp/vpTrackingException.h>
 
+#include "detector/landing_mark_detection.h"
+
 vpImage<unsigned char> I;
 vpDisplayX * display;
 
@@ -18,8 +20,11 @@ vpTemplateTrackerWarpHomography * warp;
 vpTemplateTrackerSSDInverseCompositional * tracker;
 bool initialized = false;
 
-// Used for testing with certain bag files and hardcoding detections
-#define BAG_FILE 1
+// detector
+DetectLandingMark detector;
+
+// Used for testing with certain bag files and hardcoding detections, use -1 to disable hardcoded
+#define BAG_FILE -1
 #if BAG_FILE==0 // mbztestfl1_2016-06-02-16-38-52.bag
 const int FRAME_NO = 5844;
 vpTemplateTrackerTriangle t1(vpImagePoint(346, 387), vpImagePoint(432, 369), vpImagePoint(454, 484));
@@ -35,23 +40,56 @@ vpTemplateTrackerTriangle t2(vpImagePoint(144, 307), vpImagePoint(108, 310), vpI
 void imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
   ROS_INFO("Image Recevied, %d %d %d", msg->header.seq, msg->width, msg->height);
+  std::cout << "here" << std::endl;
   I  = visp_bridge::toVispImage(*msg);
+    std::cout << "here2" << std::endl;
 
   // hardcoded detection
 #ifdef BAG_FILE
   if(msg->header.seq == FRAME_NO && !initialized)
   {
     ROS_INFO("Reached hardcoded frame sequence ID");
-    vpTemplateTrackerZone zone;
     vpTemplateTrackerZone tz;
     tz.add(t1);
     tz.add(t2);
     tracker->initFromZone(I, tz);
     initialized = true;
   }
-#endif
+#endif  
   
-  vpDisplay::display(I); 
+  vpDisplay::display(I);
+  
+    std::cout << "here3" << std::endl;
+
+  if(!initialized)
+  {
+    // if we're not tracking, do detection
+  std::cout << "here4" << std::endl;
+
+    bool detected = detector.detect(msg);
+	  std::cout << "here5" << std::endl;
+
+    if(detected){
+      landing_mark mark = detector.get_landing_mark();
+	    std::cout << "here6" << std::endl;
+
+      ROS_INFO("A marker has been detected, (%f, %f, %f, %f)", mark.x, mark.y, mark.width, mark.height );
+      vpTemplateTrackerZone tz;
+      tz.add(vpTemplateTrackerTriangle(
+        vpImagePoint(mark.x, mark.y), 
+        vpImagePoint(mark.x, mark.y + mark.height),
+        vpImagePoint(mark.x + mark.width, mark.y)
+      ));
+      tz.add(vpTemplateTrackerTriangle(
+        vpImagePoint(mark.x + mark.width, mark.y),
+        vpImagePoint(mark.x, mark.y + mark.height),
+        vpImagePoint(mark.x + mark.width, mark.y + mark.width)
+      ));
+	  tracker->initFromZone(I, tz);
+      initialized = true;
+    }
+  }
+  
   if(initialized)
   {
     try{

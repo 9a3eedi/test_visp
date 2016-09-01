@@ -10,8 +10,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   visp_bridge
-  OpenCV
+  cv_bridge
 )
+
+find_package(OpenCV 3.1.0 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -196,5 +198,6 @@ target_link_libraries(keypoint-matcher ${catkin_LIBRARIES})
 add_executable(edge-tracker src/edge-tracker.cpp)
 target_link_libraries(edge-tracker ${catkin_LIBRARIES})
 
-add_executable(template-tracker src/template-tracker.cpp)
+add_executable(template-tracker src/template-tracker.cpp src/detector/landing_mark_detection.cpp)
 target_link_libraries(template-tracker ${catkin_LIBRARIES})
+target_link_libraries(template-tracker ${OpenCV_LIBRARIES})
