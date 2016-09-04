@@ -70,14 +70,14 @@ void imageCallback(const sensor_msgs::Image::ConstPtr& msg)
       ROS_INFO("A marker has been detected, (%f, %f, %f, %f)", mark.x, mark.y, mark.width, mark.height );
       vpTemplateTrackerZone tz;
       tz.add(vpTemplateTrackerTriangle(
-        vpImagePoint(mark.x, mark.y), 
-        vpImagePoint(mark.x, mark.y + mark.height),
-        vpImagePoint(mark.x + mark.width, mark.y)
+        vpImagePoint(mark.y, mark.x), 
+        vpImagePoint(mark.y + mark.height, mark.x),
+        vpImagePoint(mark.y, mark.x + mark.width)
       ));
       tz.add(vpTemplateTrackerTriangle(
-        vpImagePoint(mark.x + mark.width, mark.y),
-        vpImagePoint(mark.x, mark.y + mark.height),
-        vpImagePoint(mark.x + mark.width, mark.y + mark.width)
+        vpImagePoint(mark.y, mark.x + mark.width),
+        vpImagePoint(mark.y + mark.height, mark.x),
+        vpImagePoint(mark.y + mark.height, mark.x + mark.width)
       ));
 	  tracker->initFromZone(I, tz);
       initialized = true;
@@ -123,7 +123,7 @@ int main(int argc, char ** argv)
   tracker->setSampling(1, 1);
   tracker->setLambda(0.001);
   tracker->setIterationMax(200);
-  tracker->setPyramidal(2, 0);
+  tracker->setPyramidal(2, 1);
 
   ros::spin();
  
