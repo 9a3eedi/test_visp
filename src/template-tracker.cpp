@@ -110,7 +110,7 @@ int main(int argc, char ** argv)
   ros::init(argc, argv, "templatetracker");
   ros::NodeHandle n;
   
-  I.init(480, 640);
+  I.init(720, 1280);
   
   ros::Subscriber sub = n.subscribe("image_raw", 100, imageCallback);
   
@@ -120,10 +120,10 @@ int main(int argc, char ** argv)
 
   warp = new vpTemplateTrackerWarpHomography();
   tracker = new vpTemplateTrackerSSDInverseCompositional(warp);
-  tracker->setSampling(1, 1);
+  tracker->setSampling(2, 2);
   tracker->setLambda(0.001);
   tracker->setIterationMax(200);
-  tracker->setPyramidal(2, 1);
+  tracker->setPyramidal(4, 1);
 
   ros::spin();
  
